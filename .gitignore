@@ -6,3 +6,7 @@ cless_compiler
 test.cless
 examples
 *.o
+# 実行ファイル
+clessc
+*.out
+tests/*_runner

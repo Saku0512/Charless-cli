@@ -50,62 +50,41 @@ long get_opcode() {
     char buffer[64];
     int i = 0;
 
-    // Skip whitespace and comments
+    // 空白文字とコメントをスキップする
     while (1) {
-        while (isspace(*ip)) {
+        while (isspace((unsigned char)*ip)) {
             ip++;
         }
 
-        // Single-line comment (90020) - v3
-        if (strncmp(ip, "90020", 5) == 0) {
-            ip += 5;
+        // 一行コメント (900200 ... \n) - v3
+        if (strncmp(ip, "900200", 6) == 0) {
+            ip += 6;
             while (*ip != '\0' && *ip != '\n') {
                 ip++;
             }
-            continue; // Restart the loop to handle more whitespace or comments
+            continue; // 続く空白やコメントを処理するためループ先頭へ
         }
 
-        // Multi-line comment (90120 ... 90120) - v3
-        if (strncmp(ip, "90120", 5) == 0) {
-            ip += 5; // Consume the opening "90120"
-            while (*ip != '\0' && strncmp(ip, "90120", 5) != 0) {
+        // 複数行コメント (901200 ... 901200) - v3
+        if (strncmp(ip, "901200", 6) == 0) {
+            ip += 6; // 開始の "901200" を消費
+            while (*ip != '\0' && strncmp(ip, "901200", 6) != 0) {
                 ip++;
             }
-            if (strncmp(ip, "90120", 5) == 0) {
-                ip += 5; // Consume the closing "90120"
+            if (strncmp(ip, "901200", 6) == 0) {
+                ip += 6; // 終了の "901200" を消費
             }
-            continue; // Restart the loop
+            continue; // 続く空白やコメントを処理するためループ先頭へ
         }
-        
-        // Legacy 2-digit comments (deprecated, show warning)
-        if (strncmp(ip, "9720", 4) == 0) {
-            fprintf(stderr, "Warning: 2-digit comment (97) is deprecated. Use 90020 instead.\n");
-            ip += 4;
-            while (*ip != '\0' && *ip != '\n') {
-                ip++;
-            }
-            continue;
-        }
-        if (strncmp(ip, "9820", 4) == 0) {
-            fprintf(stderr, "Warning: 2-digit comment (98) is deprecated. Use 90120 instead.\n");
-            ip += 4;
-            while (*ip != '\0' && strncmp(ip, "9820", 4) != 0) {
-                ip++;
-            }
-            if (strncmp(ip, "9820", 4) == 0) {
-                ip += 4;
-            }
-            continue;
-        }
-        
-        break; // No more whitespace or comments
+
+        break; // 空白・コメントのスキップ完了
     }
 
     // オペコードの数字部分を読み込む（3桁固定）
     // v3では命令は必ず3桁
     while (*ip != '\0' && i < 3) {
         // 先読みして、コメントの開始シーケンスかをチェック
-        if (strncmp(ip, "90020", 5) == 0 || strncmp(ip, "90120", 5) == 0) {
+        if (strncmp(ip, "900200", 6) == 0 || strncmp(ip, "901200", 6) == 0) {
             if (i > 0) {
                 // バッファに既に数字が入っているのにコメントが始まったらエラー
                 fprintf(stderr, "Error: Comments are not allowed within an instruction. Please remove the comment here.\n");

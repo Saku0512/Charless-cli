@@ -63,14 +63,14 @@ void test_get_opcode_with_whitespace() {
 
 void test_get_opcode_with_single_line_comment() {
   printf("Running test: test_get_opcode_with_single_line_comment... ");
-  setup_ip("90020 this is a comment\n025200");
+  setup_ip("900200 this is a comment\n025200");
   assert(get_opcode() == 25);
   printf("OK\n");
 }
 
 void test_get_opcode_with_multi_line_comment() {
   printf("Running test: test_get_opcode_with_multi_line_comment... ");
-  setup_ip("90120 multi\nline\ncomment 90120 030 200");
+  setup_ip("901200 multi\nline\ncomment 901200 030 200");
   assert(get_opcode() == 30);
   printf("OK\n");
 }
@@ -93,32 +93,34 @@ void test_consume_separator() {
   printf("OK\n");
 }
 
-// --- Crashing Test Cases ---
+// --- クラッシュを期待するテストケース ---
 
 void crash_test_invalid_comment_in_opcode() {
-  setup_ip("0190020comment200"); // 01 is incomplete (i=2), then comment start
-                                 // -> Error
-  get_opcode();                  // This should call exit(1)
+  setup_ip("01900200comment200"); // 01 は未完成 (2桁) の状態でコメント開始 -> エラー
+  get_opcode();                   // exit(1) されることを期待
 }
 
 void crash_test_invalid_multiline_comment_in_opcode() {
-  setup_ip("0190120comment90120200"); // 01 is incomplete, then comment start ->
-                                      // Error
-  get_opcode();                       // This should call exit(1)
+  setup_ip("01901200comment901200200"); // 01 は未完成 (2桁) の状態でコメント開始 -> エラー
+  get_opcode();                         // exit(1) されることを期待
+}
+
+void crash_test_legacy_2digit_opcode() {
+  setup_ip("01200"); // 旧2桁オペコード -> v3ではエラー
+  get_opcode();      // exit(1) されることを期待
 }
 
 void crash_test_number_literal_too_long() {
-  // 64 digits (buffer is 64 chars, so this overflows if not checked, or hits
-  // limit)
+  // 64桁の数値リテラル（バッファ上限63桁超過）
   setup_ip(
       "9901111111111111111111111111111111111111111111111111111111111111111200");
-  get_number_literal(); // This should call exit(1) with error
+  get_number_literal(); // exit(1) されることを期待
 }
 
-// --- Test Runner ---
+// --- テストランナー ---
 
 int main() {
-  // Success cases
+  // 正常系
   test_get_opcode_simple();
   test_get_opcode_with_whitespace();
   test_get_opcode_with_single_line_comment();
@@ -126,11 +128,13 @@ int main() {
   test_get_number_literal();
   test_consume_separator();
 
-  // Crash cases
+  // 異常系（クラッシュ確認）
   expect_crash(crash_test_invalid_comment_in_opcode,
                "test_get_opcode_with_invalid_comment");
   expect_crash(crash_test_invalid_multiline_comment_in_opcode,
                "test_get_opcode_with_invalid_multiline_comment");
+  expect_crash(crash_test_legacy_2digit_opcode,
+               "test_legacy_2digit_opcode");
   expect_crash(crash_test_number_literal_too_long,
                "test_number_literal_too_long");
 

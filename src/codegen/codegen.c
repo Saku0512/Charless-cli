@@ -16,6 +16,7 @@
 #include "opecodes/ope1x/ope13.h"
 #include "opecodes/ope2x/ope21.h"
 #include "opecodes/ope5x/ope51.h"
+#include "opecodes/ope5x/ope52.h"
 #include "opecodes/ope5x/ope53.h"
 #include "opecodes/ope5x/ope54.h"
 #include "opecodes/ope6x/ope61.h"
@@ -33,16 +34,16 @@
 #include "opecodes/ope8x/ope86.h"
 
 void generate_code(FILE *out_file, char *code) {
-    // --- Pass 1: Find all jump targets ---
+    // --- Pass 1: ジャンプ先アドレスをすべて収集する (v3) ---
     long *jump_targets = NULL;
     int targets_count = 0;
     char *scanner = code;
     while (*scanner != '\0') {
-        if ((strncmp(scanner, "70020990", 8) == 0) ||
-            (strncmp(scanner, "70120990", 8) == 0) ||
-            (strncmp(scanner, "70220990", 8) == 0))
+        if ((strncmp(scanner, "700200990", 9) == 0) ||
+            (strncmp(scanner, "701200990", 9) == 0) ||
+            (strncmp(scanner, "702200990", 9) == 0))
         {
-            char *num_start = scanner + 8; // Move past "XXX20990"
+            char *num_start = scanner + 9; // "XXX200990" の直後へ進める
             char *num_end = strstr(num_start, "200");
             if (num_end) {
                 char addr_buf[20];
@@ -122,11 +123,15 @@ void generate_code(FILE *out_file, char *code) {
                 opecode_21(out_file);
                 break;
 
-            case 500: // PUSH (v3, 旧51)
+            case 500: // PUSH (v3)
                 opecode_51(out_file);
                 break;
 
-            case 510: // STORE (v3, 旧53)
+            case 501: // POP (v3)
+                opecode_52(out_file);
+                break;
+
+            case 510: // STORE (v3)
                 opecode_53(out_file);
                 break;
 
